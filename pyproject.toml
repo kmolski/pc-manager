@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "pc-manager"
+version = "0.1.0"
+description = ""
+authors = ["kmolski <starfighter413@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+Flask = "^2.0.2"
+flask-restx = "^0.5.1"
+flask-marshmallow = "^0.14.0"
+flask-httpauth = "^4.5.0"
+marshmallow-oneofschema = "^3.0.1"
+SQLAlchemy = "^1.4.28"
+psycopg2 = "^2.9.1"
+paramiko = "^2.8.1"
+wakeonlan = "^2.1.0"
+libvirt-python = "^7.10.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
