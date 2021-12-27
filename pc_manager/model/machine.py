@@ -1,34 +1,32 @@
-from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.orderinglist import ordering_list
-from sqlalchemy.orm import relationship
 
-from model import Base
+from app import db
 from model.base import MachineStatus
 from model.custom_operation import association_table, CustomOperationProvider
 
 
-class Machine(Base):
+class Machine(db.Model):
     __tablename__ = "machine"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(127), nullable=False, unique=True)
-    place = Column(String(127))
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(127), nullable=False, unique=True)
+    place = db.Column(db.String(127))
 
-    hardware_features = relationship(
+    hardware_features = db.relationship(
         "HardwareFeatures",
         foreign_keys="HardwareFeatures.machine_id",
         back_populates="machine",
         uselist=False,
         cascade="all, delete-orphan",
     )
-    software_platforms = relationship(
+    software_platforms = db.relationship(
         "SoftwarePlatform",
         back_populates="machine",
         cascade="all, delete-orphan",
         order_by="SoftwarePlatform.priority",
         collection_class=ordering_list("priority"),
     )
-    custom_operations = relationship(
+    custom_operations = db.relationship(
         "CustomOperation",
         secondary=association_table,
         back_populates="machines",

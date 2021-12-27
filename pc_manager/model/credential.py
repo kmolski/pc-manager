@@ -4,29 +4,28 @@ from paramiko.dsskey import DSSKey
 from paramiko.ecdsakey import ECDSAKey
 from paramiko.ed25519key import Ed25519Key
 from paramiko.rsakey import RSAKey
-from sqlalchemy import Column, Integer, String, Enum
 
-from model import Base
+from app import db
 
 
-class Credential(Base):
+class Credential(db.Model):
     __tablename__ = "credential"
     __mapper_args__ = {"polymorphic_on": "type"}
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(127), unique=True)
-    type = Column(String(31))
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(127), unique=True)
+    type = db.Column(db.String(31))
 
-    username = Column(String(255))
-    secret = Column(String(255))
+    username = db.Column(db.String(255))
+    secret = db.Column(db.String(255))
 
 
 class SshCredential(Credential):
     KEY_TYPES = {"ed25519": Ed25519Key, "ecdsa": ECDSAKey, "dss": DSSKey, "rsa": RSAKey}
 
-    key = Column(String(1023))
-    key_type = Column(
-        Enum(*KEY_TYPES.keys(), name="ssh_key_type", validate_strings=True)
+    key = db.Column(db.String(1023))
+    key_type = db.Column(
+        db.Enum(*KEY_TYPES.keys(), name="ssh_key_type", validate_strings=True)
     )
 
     def get_ssh_credentials(self):

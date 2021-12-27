@@ -1,25 +1,43 @@
 from time import sleep, time
 
 import libvirt
-from sqlalchemy import Column, Integer, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID, MACADDR
-from sqlalchemy.orm import relationship
 from wakeonlan import send_magic_packet
 
-from model import Base
-from model.base import OperationProvider, MachineStatus, StatusManager, RESUME_OP, GET_STATUS_OP, ENSURE_STATUS_OP, \
-    START_OP, SHUTDOWN_OP, SUSPEND_OP, REBOOT_OP
+from app import db
+from model.base import (
+    OperationProvider,
+    MachineStatus,
+    StatusManager,
+    RESUME_OP,
+    GET_STATUS_OP,
+    ENSURE_STATUS_OP,
+    START_OP,
+    SHUTDOWN_OP,
+    SUSPEND_OP,
+    REBOOT_OP,
+)
 
 
-class HardwareFeatures(Base, OperationProvider, StatusManager):
+class HardwareFeatures(db.Model, OperationProvider, StatusManager):
     __tablename__ = "hardware_features"
     __mapper_args__ = {"polymorphic_on": "type"}
 
-    id = Column(Integer, primary_key=True)
-    machine_id = Column(Integer, ForeignKey("machine.id", ondelete="CASCADE"), nullable=False, unique=True)
-    type = Column(String(31))
+    id = db.Column(db.Integer, primary_key=True)
+    machine_id = db.Column(
+        db.Integer,
+        db.ForeignKey("machine.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    type = db.Column(db.String(31))
 
-    machine = relationship("Machine", foreign_keys=[machine_id], back_populates="hardware_features", uselist=False)
+    machine = db.relationship(
+        "Machine",
+        foreign_keys=[machine_id],
+        back_populates="hardware_features",
+        uselist=False,
+    )
 
 
 class WakeOnLan(HardwareFeatures):
@@ -28,7 +46,7 @@ class WakeOnLan(HardwareFeatures):
 
     RESUME_TIMEOUT = 20
 
-    mac_address = Column(MACADDR)
+    mac_address = db.Column(MACADDR)
 
     def __init__(self, mac_address, id=None):
         self.id = id
@@ -40,7 +58,7 @@ class WakeOnLan(HardwareFeatures):
     def get_operations(self):
         return {
             RESUME_OP.name: (self.__resume, RESUME_OP.description),
-            ENSURE_STATUS_OP.name: (self.ensure_status, ENSURE_STATUS_OP.description)
+            ENSURE_STATUS_OP.name: (self.ensure_status, ENSURE_STATUS_OP.description),
         }
 
     def get_status(self):
@@ -65,10 +83,14 @@ class LibvirtGuest(HardwareFeatures):
 
     OPERATION_TIMEOUT = 10
 
-    host_id = Column(Integer, ForeignKey("software_platform.id", ondelete="SET NULL"))
-    vm_uuid = Column(UUID(as_uuid=True))
+    host_id = db.Column(
+        db.Integer, db.ForeignKey("software_platform.id", ondelete="SET NULL")
+    )
+    vm_uuid = db.Column(UUID(as_uuid=True))
 
-    libvirt_host_platform = relationship("SoftwarePlatform", foreign_keys=[host_id], uselist=False)
+    libvirt_host_platform = db.relationship(
+        "SoftwarePlatform", foreign_keys=[host_id], uselist=False
+    )
 
     def __init__(self, host_id, vm_uuid, id=None):
         self.id = id
@@ -118,7 +140,7 @@ class LibvirtGuest(HardwareFeatures):
             RESUME_OP.name: (self.resume, RESUME_OP.description),
             REBOOT_OP.name: (self.reboot, REBOOT_OP.description),
             GET_STATUS_OP.name: (self.get_status, GET_STATUS_OP.description),
-            ENSURE_STATUS_OP.name: (self.ensure_status, ENSURE_STATUS_OP.description)
+            ENSURE_STATUS_OP.name: (self.ensure_status, ENSURE_STATUS_OP.description),
         }
 
     def get_status(self):

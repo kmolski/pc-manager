@@ -1,35 +1,32 @@
 from json import loads
 
-from sqlalchemy import Column, Integer, String, Table, ForeignKey
-from sqlalchemy.orm import relationship
-
-from model import Base
+from app import db
 from model.base import OperationProvider
 from utils import execute_operations
 
-association_table = Table(
+association_table = db.Table(
     "machine_custom_operation",
-    Base.metadata,
-    Column(
-        "machine_id", ForeignKey("machine.id", ondelete="CASCADE"), primary_key=True
+    db.metadata,
+    db.Column(
+        "machine_id", db.ForeignKey("machine.id", ondelete="CASCADE"), primary_key=True
     ),
-    Column(
+    db.Column(
         "operation_id",
-        ForeignKey("custom_operation.id", ondelete="CASCADE"),
+        db.ForeignKey("custom_operation.id", ondelete="CASCADE"),
         primary_key=True,
     ),
 )
 
 
-class CustomOperation(Base):
+class CustomOperation(db.Model):
     __tablename__ = "custom_operation"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(127), unique=True)
-    description = Column(String(255))
-    json = Column(String)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(127), unique=True)
+    description = db.Column(db.String(255))
+    json = db.Column(db.String)
 
-    machines = relationship(
+    machines = db.relationship(
         "Machine", secondary=association_table, back_populates="custom_operations"
     )
 

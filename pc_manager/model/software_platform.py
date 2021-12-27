@@ -1,10 +1,8 @@
 import socket
 
 from paramiko.client import SSHClient
-from sqlalchemy import Column, Integer, ForeignKey, String
-from sqlalchemy.orm import relationship
 
-from model import Base
+from app import db
 from model.base import (
     OperationProvider,
     MachineStatus,
@@ -18,18 +16,18 @@ from model.base import (
 )
 
 
-class SoftwarePlatform(Base, OperationProvider, StatusManager):
+class SoftwarePlatform(db.Model, OperationProvider, StatusManager):
     __tablename__ = "software_platform"
     __mapper_args__ = {"polymorphic_on": "type"}
 
-    id = Column(Integer, primary_key=True)
-    machine_id = Column(
-        Integer, ForeignKey("machine.id", ondelete="CASCADE"), nullable=False
+    id = db.Column(db.Integer, primary_key=True)
+    machine_id = db.Column(
+        db.Integer, db.ForeignKey("machine.id", ondelete="CASCADE"), nullable=False
     )
-    type = Column(String(31))
-    priority = Column(Integer, nullable=False, unique=True)
+    type = db.Column(db.String(31))
+    priority = db.Column(db.Integer, nullable=False, unique=True)
 
-    machine = relationship(
+    machine = db.relationship(
         "Machine", back_populates="software_platforms", uselist=False
     )
 
@@ -38,10 +36,12 @@ class SoftwarePlatform(Base, OperationProvider, StatusManager):
 
 
 class SshAccessiblePlatform(SoftwarePlatform):
-    hostname = Column(String(127))
-    credential_id = Column(Integer, ForeignKey("credential.id", ondelete="SET NULL"))
+    hostname = db.Column(db.String(127))
+    credential_id = db.Column(
+        db.Integer, db.ForeignKey("credential.id", ondelete="SET NULL")
+    )
 
-    credential = relationship("SshCredential", uselist=False)
+    credential = db.relationship("SshCredential", uselist=False)
 
     def __init__(self, hostname, credential_id, id=None):
         self.id = id

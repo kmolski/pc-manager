@@ -5,7 +5,7 @@ from marshmallow.validate import Length, OneOf
 from marshmallow_oneofschema import OneOfSchema
 from sqlalchemy.exc import IntegrityError
 
-from model import db_session
+from app import db
 from model.credential import (
     Credential,
     Password,
@@ -22,11 +22,9 @@ TYPE_NAMES = {t.PROVIDER_NAME: t for t in CREDENTIAL_TYPES}
 
 @credentials.route("/credentials")
 def all_credentials():
-    # TODO: add pagination
     return render_template(
         "credentials.html",
-        credential_count=Credential.query.count(),
-        credentials=Credential.query.all(),
+        credentials=Credential.query.paginate(),
         types=CREDENTIAL_TYPES,
     )
 
@@ -44,15 +42,15 @@ def add_credential():
 
 @credentials.route("/edit_credential/<credential_id>", methods=["GET"])
 def edit_credential(credential_id):
-    credential = Credential.query.get(credential_id)
+    credential = Credential.query.get_or_404(credential_id)
     return render_template("edit_credential.html", credential=credential), 200
 
 
 @credentials.route("/delete_credential/<credential_id>", methods=["GET"])
 def delete_credential(credential_id):
-    credential = Credential.query.get(credential_id)
-    db_session.delete(credential)
-    db_session.commit()
+    credential = Credential.query.get_or_404(credential_id)
+    db.session.delete(credential)
+    db.session.commit()
     message = f"Successfully deleted '{credential.name}' credential."
     return render_template("success.html", message=message, redirect="/credentials")
 
@@ -121,12 +119,12 @@ def create_credential():
         )
     try:
         new_credential = credential_schema.load(form, unknown=EXCLUDE)
-        db_session.add(new_credential)
-        db_session.commit()
+        db.session.add(new_credential)
+        db.session.commit()
         message = f"Successfully created '{new_credential.name}' credential."
         return render_template("success.html", message=message, redirect="/credentials")
     except ValidationError as e:
-        db_session.rollback()
+        db.session.rollback()
         errors = [
             f"Field '{name}': {', '.join(desc)}" for name, desc in e.messages.items()
         ]
@@ -135,7 +133,7 @@ def create_credential():
             200,
         )
     except IntegrityError:
-        db_session.rollback()
+        db.session.rollback()
         errors = ["Credential with this name already exists"]
         return (
             render_template("add_credential.html", type=type, errors=errors),
@@ -145,7 +143,7 @@ def create_credential():
 
 @credentials.route("/edit_credential/<credential_id>", methods=["POST"])
 def update_credential(credential_id):
-    previous = Credential.query.get(credential_id)
+    previous = Credential.query.get_or_404(credential_id)
     form = request.form | {k: v.stream.read() for k, v in request.files.items()}
     if ("key" not in form) or (not form["key"]):
         form["key"] = previous.key
@@ -167,12 +165,12 @@ def update_credential(credential_id):
                 "error.html", message=message, redirect="/credentials"
             )
 
-        db_session.merge(updated)
-        db_session.commit()
+        db.session.merge(updated)
+        db.session.commit()
         message = f"Successfully updated '{updated.name}' credential."
         return render_template("success.html", message=message, redirect="/credentials")
     except ValidationError as e:
-        db_session.rollback()
+        db.session.rollback()
         errors = [
             f"Field '{name}': {', '.join(desc)}" for name, desc in e.messages.items()
         ]
@@ -181,7 +179,7 @@ def update_credential(credential_id):
             200,
         )
     except IntegrityError:
-        db_session.rollback()
+        db.session.rollback()
         errors = ["Credential with this name already exists"]
         return (
             render_template("edit_credential.html", credential=previous, errors=errors),
