@@ -24,16 +24,17 @@ class CustomOperation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(127), unique=True)
     description = db.Column(db.String(255))
-    json = db.Column(db.String)
+    ops = db.Column(db.JSON)
 
     machines = db.relationship(
         "Machine", secondary=association_table, back_populates="custom_operations"
     )
 
-    def __init__(self, name, description, json):
+    def __init__(self, name, description, ops, id=None):
+        self.id = id
         self.name = name
         self.description = description
-        self.json = json
+        self.ops = ops
 
 
 class CustomOperationProvider(OperationProvider):
