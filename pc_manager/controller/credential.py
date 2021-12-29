@@ -19,42 +19,6 @@ credentials = Blueprint("credentials", __name__, template_folder="templates")
 CREDENTIAL_TYPES = [Password, SshKeyNoPassword, SshKeyWithPassword]
 TYPE_NAMES = {t.PROVIDER_NAME: t for t in CREDENTIAL_TYPES}
 
-
-@credentials.route("/credentials")
-def all_credentials():
-    return render_template(
-        "credentials.html",
-        credentials=Credential.query.paginate(),
-        types=CREDENTIAL_TYPES,
-    )
-
-
-@credentials.route("/add_credential", methods=["GET"])
-def add_credential():
-    try:
-        credential_class = TYPE_NAMES[request.args.get("type")]
-        return render_template("add_credential.html", type=credential_class), 200
-    except KeyError:
-        return render_template(
-            "error.html", message="Incorrect credential type", redirect="/credentials"
-        )
-
-
-@credentials.route("/edit_credential/<credential_id>", methods=["GET"])
-def edit_credential(credential_id):
-    credential = Credential.query.get_or_404(credential_id)
-    return render_template("edit_credential.html", credential=credential), 200
-
-
-@credentials.route("/delete_credential/<credential_id>", methods=["GET"])
-def delete_credential(credential_id):
-    credential = Credential.query.get_or_404(credential_id)
-    db.session.delete(credential)
-    db.session.commit()
-    message = f"Successfully deleted '{credential.name}' credential."
-    return render_template("success.html", message=message, redirect="/credentials")
-
-
 ma = Marshmallow()
 
 
@@ -104,6 +68,41 @@ class CredentialSchema(OneOfSchema):
 
 
 credential_schema = CredentialSchema()
+
+
+@credentials.route("/credentials")
+def all_credentials():
+    return render_template(
+        "credentials.html",
+        credentials=Credential.query.paginate(),
+        types=CREDENTIAL_TYPES,
+    )
+
+
+@credentials.route("/add_credential", methods=["GET"])
+def add_credential():
+    try:
+        type = TYPE_NAMES[request.args.get("type")]
+        return render_template("add_credential.html", type=type), 200
+    except KeyError:
+        return render_template(
+            "error.html", message="Incorrect credential type", redirect="/credentials"
+        )
+
+
+@credentials.route("/edit_credential/<credential_id>", methods=["GET"])
+def edit_credential(credential_id):
+    credential = Credential.query.get_or_404(credential_id)
+    return render_template("edit_credential.html", credential=credential), 200
+
+
+@credentials.route("/delete_credential/<credential_id>", methods=["GET"])
+def delete_credential(credential_id):
+    credential = Credential.query.get_or_404(credential_id)
+    db.session.delete(credential)
+    db.session.commit()
+    message = f"Successfully deleted '{credential.name}' credential."
+    return render_template("success.html", message=message, redirect="/credentials")
 
 
 @credentials.route("/add_credential", methods=["POST"])
