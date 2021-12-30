@@ -12,6 +12,11 @@ custom_operations = Blueprint(
     "custom_operations", __name__, template_folder="templates"
 )
 
+REDIRECTS = {
+    "ADD": lambda: ("/add_custom_operation", "add_custom_operation.html"),
+    "EDIT": lambda id: (f"/edit_custom_operation/{id}", "edit_custom_operation.html"),
+}
+
 ma = Marshmallow()
 
 
@@ -44,9 +49,13 @@ def all_custom_operations():
 
 @custom_operations.route("/add_custom_operation", methods=["GET"])
 def add_custom_operation():
-    if "custom_operation" not in session:
-        session["custom_operation"] = []
-    custom_op = session["custom_operation"]
+    if ("action" not in session) or (session["action"] != "ADD"):
+        session.clear()
+        session["action"] = "ADD"
+        session["redirect"] = REDIRECTS["ADD"]()
+    if "steps" not in session:
+        session["steps"] = []
+    custom_op = session["steps"]
     return (
         render_template(
             "add_custom_operation.html", custom_op=custom_op, basic_ops=BASIC_OPS
@@ -60,9 +69,22 @@ def add_custom_operation():
 )
 def edit_custom_operation(custom_operation_id):
     custom_operation = CustomOperation.query.get_or_404(custom_operation_id)
+    if ("action" not in session) or (session["action"] != "EDIT"):
+        session.clear()
+        session["action"] = "EDIT"
+        session["redirect"] = REDIRECTS["EDIT"](custom_operation_id)
+    if ("id" not in session) or (session["id"] != custom_operation_id):
+        session["id"] = custom_operation_id
+        session["steps"] = custom_operation.ops
+        session["redirect"] = REDIRECTS["EDIT"](custom_operation_id)
+    custom_op = session["steps"]
     return (
         render_template(
-            "edit_custom_operation.html", custom_operation=custom_operation
+            "edit_custom_operation.html",
+            name=custom_operation.name,
+            description=custom_operation.description,
+            custom_op=custom_op,
+            basic_ops=BASIC_OPS,
         ),
         200,
     )
@@ -86,9 +108,10 @@ ma = Marshmallow()
 
 @custom_operations.route("/add_operation_step", methods=["POST"])
 def add_operation_step():
-    if "custom_operation" not in session:
-        return redirect("/add_custom_operation")
-    custom_op = session["custom_operation"]
+    redirects = session["redirect"]
+    if "steps" not in session:
+        return redirect(redirects[0])
+    custom_op = session["steps"]
 
     try:
         new_step = operation_schema.load(request.form, unknown=EXCLUDE)
@@ -96,15 +119,15 @@ def add_operation_step():
             new_step["argument"] = None
 
         custom_op.append(new_step)
-        session["custom_operation"] = custom_op
-        return redirect("/add_custom_operation")
+        session["steps"] = custom_op
+        return redirect(redirects[0])
     except ValidationError as e:
         errors = [
             f"Field '{name}': {', '.join(desc)}" for name, desc in e.messages.items()
         ]
         return (
             render_template(
-                "add_custom_operation.html",
+                redirects[1],
                 custom_op=custom_op,
                 basic_ops=BASIC_OPS,
                 errors=errors,
@@ -115,13 +138,14 @@ def add_operation_step():
 
 @custom_operations.route("/delete_operation_step/<index>")
 def delete_operation_step(index):
-    if "custom_operation" not in session:
-        return redirect("/add_custom_operation")
-    custom_op = session["custom_operation"]
+    redirects = session["redirect"]
+    if "steps" not in session:
+        return redirect(redirects[0])
+    custom_op = session["steps"]
 
     custom_op.pop(int(index) - 1)
-    session["custom_operation"] = custom_op
-    return redirect("/add_custom_operation")
+    session["steps"] = custom_op
+    return redirect(redirects[0])
 
 
 @custom_operations.route("/clear_custom_operation")
@@ -132,10 +156,10 @@ def clear_custom_operation():
 
 @custom_operations.route("/add_custom_operation", methods=["POST"])
 def create_custom_operation():
-    if "custom_operation" not in session:
+    if "steps" not in session:
         return redirect("/add_custom_operation")
     new_custom_op = request.form.to_dict()
-    custom_op = session["custom_operation"]
+    custom_op = session["steps"]
     new_custom_op["ops"] = custom_op
 
     try:
@@ -143,7 +167,7 @@ def create_custom_operation():
         db.session.add(new_custom_op)
         db.session.commit()
 
-        session.pop("custom_operation")
+        session.clear()
         message = f"Successfully created '{new_custom_op.name}' custom operation."
         return render_template(
             "success.html", message=message, redirect="/custom_operations"
@@ -177,24 +201,22 @@ def create_custom_operation():
 
 
 @custom_operations.route(
-    "/edit_custom_operations/<custom_operations_id>", methods=["POST"]
+    "/edit_custom_operation/<custom_operations_id>", methods=["POST"]
 )
-def update_custom_operations(custom_operations_id):
-    previous = CustomOperation.query.get_or_404(custom_operations_id)
-    form = request.form | {k: v.stream.read() for k, v in request.files.items()}
+def update_custom_operation(custom_operations_id):
+    if "id" not in session:
+        return redirect("/edit_custom_operation")
+    form = request.form.to_dict()
+    custom_op = session["steps"]
+    form["ops"] = custom_op
 
     try:
         updated = custom_op_schema.load(form, unknown=EXCLUDE)
         updated.id = custom_operations_id
-
-        if previous.type != updated.type:
-            message = "Changing custom_operations type is not allowed"
-            return render_template(
-                "error.html", message=message, redirect="/custom_operations"
-            )
-
         db.session.merge(updated)
         db.session.commit()
+
+        session.clear()
         message = f"Successfully updated '{updated.name}' custom operation."
         return render_template(
             "success.html", message=message, redirect="/custom_operations"
@@ -206,7 +228,12 @@ def update_custom_operations(custom_operations_id):
         ]
         return (
             render_template(
-                "edit_custom_operation.html", custom_operation=previous, errors=errors
+                "edit_custom_operation.html",
+                name=form["name"],
+                description=form["description"],
+                custom_op=custom_op,
+                basic_ops=BASIC_OPS,
+                errors=errors,
             ),
             200,
         )
@@ -215,7 +242,12 @@ def update_custom_operations(custom_operations_id):
         errors = ["Custom operation with this name already exists"]
         return (
             render_template(
-                "edit_custom_operation.html", custom_operation=previous, errors=errors
+                "edit_custom_operation.html",
+                name=form["name"],
+                description=form["description"],
+                custom_op=custom_op,
+                basic_ops=BASIC_OPS,
+                errors=errors,
             ),
             200,
         )
