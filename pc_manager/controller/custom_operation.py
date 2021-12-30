@@ -49,9 +49,9 @@ def all_custom_operations():
 
 @custom_operations.route("/add_custom_operation", methods=["GET"])
 def add_custom_operation():
-    if ("action" not in session) or (session["action"] != "ADD"):
+    if ("action" not in session) or (session["action"] != "CUSTOM_OP_ADD"):
         session.clear()
-        session["action"] = "ADD"
+        session["action"] = "CUSTOM_OP_ADD"
         session["redirect"] = REDIRECTS["ADD"]()
     if "steps" not in session:
         session["steps"] = []
@@ -69,9 +69,9 @@ def add_custom_operation():
 )
 def edit_custom_operation(custom_operation_id):
     custom_operation = CustomOperation.query.get_or_404(custom_operation_id)
-    if ("action" not in session) or (session["action"] != "EDIT"):
+    if ("action" not in session) or (session["action"] != "CUSTOM_OP_EDIT"):
         session.clear()
-        session["action"] = "EDIT"
+        session["action"] = "CUSTOM_OP_EDIT"
         session["redirect"] = REDIRECTS["EDIT"](custom_operation_id)
     if ("id" not in session) or (session["id"] != custom_operation_id):
         session["id"] = custom_operation_id
