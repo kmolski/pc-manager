@@ -83,7 +83,11 @@
                         <tr>
                             <th scope="row">{{loop.index}}</th>
                             <td>{{op.op_name}}</td>
-                            <td>{{op.argument if op.argument != None else 'none'}}</td>
+                            <td>
+                                {% if op.argument %}
+                                <code>{{op.argument}}</code>
+                                {% endif %}
+                            </td>
                             <td class="d-flex flex-row justify-content-end">
                                 <a href="/delete_operation_step/{{loop.index}}" class="btn btn-danger ms-2">Delete</a>
                             </td>

@@ -150,7 +150,7 @@ def delete_operation_step(index):
 
 @custom_operations.route("/clear_custom_operation")
 def clear_custom_operation():
-    session.pop("custom_operation")
+    session.clear()
     return redirect("/add_custom_operation")
 
 
