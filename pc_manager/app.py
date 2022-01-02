@@ -1,8 +1,7 @@
 from os import getenv, urandom
 
-from flask import Flask, render_template
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-
 
 DATABASE_URL = getenv("PC_MANAGER_DB_URL", "postgresql://localhost:5432/pc_manager")
 
@@ -16,27 +15,13 @@ db = SQLAlchemy(app)
 
 from controller.credential import credentials
 from controller.custom_operation import custom_operations
-from model import (
-    credential,
-    custom_operation,
-    machine,
-    hardware_features,
-    software_platform,
-)
-from model.machine import Machine
+from controller.machine import machines
 
 db.create_all()
 
 app.register_blueprint(credentials)
 app.register_blueprint(custom_operations)
-
-
-@app.route("/")
-def machines():
-    return render_template("index.html", machines=Machine.query.all())
-
-
-# rest_api.init_app(app)
+app.register_blueprint(machines)
 
 
 @app.route("/info/health")

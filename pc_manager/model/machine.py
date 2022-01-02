@@ -45,7 +45,7 @@ class Machine(db.Model):
             for p in (
                 CustomOperationProvider(self),
                 self.hardware_features,
-                *self.software_platforms,
+                *(self.software_platforms or []),
             )
             if p is not None
         ]
@@ -53,7 +53,7 @@ class Machine(db.Model):
     def get_status_managers(self):
         return [
             p
-            for p in (self.hardware_features, *self.software_platforms)
+            for p in (self.hardware_features, *(self.software_platforms or []))
             if p is not None
         ]
 
@@ -70,7 +70,7 @@ class Machine(db.Model):
             except Exception as exc:
                 errors.append(exc)
         if errors:
-            raise Exception(f"execute_action failed: all providers failed", errors)
+            raise Exception("execute_action failed: all providers failed", errors)
         else:
             raise Exception(f"operation not found for machine {self.name}", name)
 

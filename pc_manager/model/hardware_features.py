@@ -42,6 +42,8 @@ class HardwareFeatures(db.Model, OperationProvider, StatusManager):
 
 class WakeOnLan(HardwareFeatures):
     PROVIDER_NAME = "wakeonlan"
+    READABLE_NAME = "Wake-on-LAN"
+
     __mapper_args__ = {"polymorphic_identity": PROVIDER_NAME}
 
     RESUME_TIMEOUT = 20
@@ -79,6 +81,8 @@ class WakeOnLan(HardwareFeatures):
 
 class LibvirtGuest(HardwareFeatures):
     PROVIDER_NAME = "libvirt"
+    READABLE_NAME = "KVM/Libvirt guest"
+
     __mapper_args__ = {"polymorphic_identity": PROVIDER_NAME}
 
     OPERATION_TIMEOUT = 10

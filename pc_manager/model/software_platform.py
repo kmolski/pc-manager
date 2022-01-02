@@ -25,7 +25,7 @@ class SoftwarePlatform(db.Model, OperationProvider, StatusManager):
         db.Integer, db.ForeignKey("machine.id", ondelete="CASCADE"), nullable=False
     )
     type = db.Column(db.String(31))
-    priority = db.Column(db.Integer, nullable=False, unique=True)
+    priority = db.Column(db.Integer, nullable=False)
 
     machine = db.relationship(
         "Machine", back_populates="software_platforms", uselist=False
