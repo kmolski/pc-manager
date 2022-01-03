@@ -1,16 +1,15 @@
 from flask import render_template, Blueprint, request, session, redirect
 from flask_marshmallow import Marshmallow
 from marshmallow import fields, post_load, ValidationError, EXCLUDE
-from marshmallow.validate import Length, OneOf, Regexp
+from marshmallow.validate import Length, Regexp
 from marshmallow_oneofschema import OneOfSchema
 from sqlalchemy.exc import IntegrityError
 
 from app import db
-from model.base import BASIC_OPS
 from model.credential import Credential
 from model.hardware_features import WakeOnLan, LibvirtGuest
 from model.machine import Machine
-from model.software_platform import LinuxPlatform, WindowsPlatform
+from model.software_platform import LinuxPlatform, WindowsPlatform, SoftwarePlatform
 
 machines = Blueprint(
     "machines", __name__, template_folder="templates"
@@ -137,16 +136,22 @@ def edit_machine(machine_id):
         session["redirect"] = REDIRECTS["EDIT"](machine_id)
     if ("id" not in session) or (session["id"] != machine_id):
         session["id"] = machine_id
-        session["steps"] = machine.ops
+        hw = machine.hardware_features
+        sw = machine.software_platforms
+        session["machine"] = {
+            "hardware_features": hardware_features_schema.dump(hw) if hw else None,
+            "software_platforms": software_platform_schema.dump(sw, many=True) if sw else []
+        }
         session["redirect"] = REDIRECTS["EDIT"](machine_id)
-    custom_op = session["steps"]
+    providers = session["machine"]
     return (
         render_template(
             "edit_machine.html",
             name=machine.name,
-            description=machine.description,
-            custom_op=custom_op,
-            basic_ops=BASIC_OPS,
+            place=machine.place,
+            providers=providers,
+            linux_hosts=LinuxPlatform.query.all(),
+            credentials=Credential.query
         ),
         200,
     )
@@ -304,12 +309,16 @@ def create_machine():
 def update_machine(machine_id):
     if "id" not in session:
         return redirect("/edit_machine")
-    form = request.form.to_dict()
-    custom_op = session["steps"]
-    form["ops"] = custom_op
+    previous = Machine.query.get(machine_id)
+    providers = session["machine"]
+    form = request.form.to_dict() | providers
+
+    db.session.delete(previous.hardware_features)
+    for sw in previous.software_platforms:
+        db.session.delete(sw)
 
     try:
-        updated = custom_op_schema.load(form, unknown=EXCLUDE)
+        updated = machine_schema.load(form, unknown=EXCLUDE)
         updated.id = machine_id
         db.session.merge(updated)
         db.session.commit()
@@ -328,23 +337,25 @@ def update_machine(machine_id):
             render_template(
                 "edit_machine.html",
                 name=form["name"],
-                description=form["description"],
-                custom_op=custom_op,
-                basic_ops=BASIC_OPS,
+                place=form["place"],
+                providers=providers,
+                linux_hosts=LinuxPlatform.query.all(),
+                credentials=Credential.query,
                 errors=errors,
             ),
             200,
         )
     except IntegrityError:
         db.session.rollback()
-        errors = ["Custom operation with this name already exists"]
+        errors = ["Machine with this name already exists"]
         return (
             render_template(
                 "edit_machine.html",
                 name=form["name"],
-                description=form["description"],
-                custom_op=custom_op,
-                basic_ops=BASIC_OPS,
+                place=form["place"],
+                providers=providers,
+                linux_hosts=LinuxPlatform.query.all(),
+                credentials=Credential.query,
                 errors=errors,
             ),
             200,
