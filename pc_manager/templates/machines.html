@@ -49,6 +49,7 @@
                 <th scope="col">Place</th>
                 <th scope="col">Hardware</th>
                 <th scope="col">SW platforms</th>
+                <th scope="col">Last status</th>
                 <th></th>
             </tr>
             </thead>
@@ -57,14 +58,27 @@
             <tr class="accordion-header collapsed">
                 <th scope="row">{{loop.index}}</th>
                 <td data-bs-toggle="collapse" data-bs-target="#details{{machine.id}}">
-                    <i class="bi-chevron-right me-2"></i>{{machine.name}}
+                    <span class="d-flex flex-row flex-nowrap">
+                        <i class="bi-chevron-right me-2"></i>{{machine.name}}
+                    </span>
                 </td>
                 <td>{{machine.place}}</td>
-                <td>{{machine.hardware_features.READABLE_NAME}}</td>
+                <td>{{machine.hardware_features.READABLE_NAME if machine.hardware_features else 'none'}}</td>
                 <td>{{machine.software_platforms|length}}</td>
-                <td class="d-flex flex-row justify-content-end">
-                    <a href="/edit_machine/{{machine.id}}" class="btn btn-secondary ms-2">Edit</a>
-                    <a href="/delete_machine/{{machine.id}}" class="btn btn-danger ms-2">Delete</a>
+                <td></td>
+                <td class="d-flex flex-row flex-wrap justify-content-end">
+                    <a href="/execute_action/{{machine.id}}" class="btn btn-primary m-1">Execute action</a>
+                    <button class="btn btn-primary dropdown-toggle m-1" type="button" id="changeStatusDropdown"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        Change status
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="changeStatusDropdown">
+                        <a class="dropdown-item" href="/change_status/{{machine.id}}?target_status=POWER_ON">Power on</a>
+                        <a class="dropdown-item" href="/change_status/{{machine.id}}?target_status=POWER_OFF">Power off</a>
+                        <a class="dropdown-item" href="/change_status/{{machine.id}}?target_status=SUSPENDED">Suspended</a>
+                    </ul>
+                    <a href="/edit_machine/{{machine.id}}" class="btn btn-secondary m-1">Edit</a>
+                    <a href="/delete_machine/{{machine.id}}" class="btn btn-danger m-1">Delete</a>
                 </td>
             </tr>
             <tr class="accordion-collapse collapse" id="details{{machine.id}}">

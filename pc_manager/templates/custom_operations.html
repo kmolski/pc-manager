@@ -56,13 +56,15 @@
                 <tr class="accordion-header collapsed">
                     <th scope="row">{{loop.index}}</th>
                     <td data-bs-toggle="collapse" data-bs-target="#details{{custom_op.id}}">
-                        <i class="bi-chevron-right me-2"></i>{{custom_op.name}}
+                        <span class="d-flex flex-row flex-nowrap">
+                            <i class="bi-chevron-right me-2"></i>{{custom_op.name}}
+                        </span>
                     </td>
                     <td>{{custom_op.description}}</td>
                     <td>{{custom_op.ops|length}}</td>
-                    <td class="d-flex flex-row justify-content-end">
-                        <a href="/edit_custom_operation/{{custom_op.id}}" class="btn btn-secondary ms-2">Edit</a>
-                        <a href="/delete_custom_operation/{{custom_op.id}}" class="btn btn-danger ms-2">Delete</a>
+                    <td class="d-flex flex-row flex-wrap justify-content-end">
+                        <a href="/edit_custom_operation/{{custom_op.id}}" class="btn btn-secondary m-1">Edit</a>
+                        <a href="/delete_custom_operation/{{custom_op.id}}" class="btn btn-danger m-1">Delete</a>
                     </td>
                 </tr>
                 <tr class="accordion-collapse collapse" id="details{{custom_op.id}}">
