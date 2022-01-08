@@ -6,14 +6,13 @@ from marshmallow_oneofschema import OneOfSchema
 from sqlalchemy.exc import IntegrityError
 
 from app import db
+from model.base import MachineStatus
 from model.credential import Credential
 from model.hardware_features import WakeOnLan, LibvirtGuest
 from model.machine import Machine
-from model.software_platform import LinuxPlatform, WindowsPlatform, SoftwarePlatform
+from model.software_platform import LinuxPlatform, WindowsPlatform
 
-machines = Blueprint(
-    "machines", __name__, template_folder="templates"
-)
+machines = Blueprint("machines", __name__, template_folder="templates")
 
 REDIRECTS = {
     "ADD": lambda: ("/add_machine", "add_machine.html"),
@@ -24,7 +23,9 @@ ma = Marshmallow()
 
 
 class WakeOnLanSchema(ma.Schema):
-    mac_address = fields.Str(required=True, validate=Regexp(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"))
+    mac_address = fields.Str(
+        required=True, validate=Regexp(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$")
+    )
 
     @post_load
     def make_wakeonlan(self, data, **_):
@@ -109,25 +110,20 @@ def add_machine():
         session["action"] = "MACHINE_ADD"
         session["redirect"] = REDIRECTS["ADD"]()
     if "machine" not in session:
-        session["machine"] = {
-            "hardware_features": None,
-            "software_platforms": []
-        }
+        session["machine"] = {"hardware_features": None, "software_platforms": []}
     machine = session["machine"]
     return (
         render_template(
             "add_machine.html",
             machine=machine,
             linux_hosts=LinuxPlatform.query.all(),
-            credentials=Credential.query
+            credentials=Credential.query,
         ),
         200,
     )
 
 
-@machines.route(
-    "/edit_machine/<machine_id>", methods=["GET"]
-)
+@machines.route("/edit_machine/<machine_id>", methods=["GET"])
 def edit_machine(machine_id):
     machine = Machine.query.get_or_404(machine_id)
     if ("action" not in session) or (session["action"] != "MACHINE_EDIT"):
@@ -140,7 +136,9 @@ def edit_machine(machine_id):
         sw = machine.software_platforms
         session["machine"] = {
             "hardware_features": hardware_features_schema.dump(hw) if hw else None,
-            "software_platforms": software_platform_schema.dump(sw, many=True) if sw else []
+            "software_platforms": software_platform_schema.dump(sw, many=True)
+            if sw
+            else [],
         }
         session["redirect"] = REDIRECTS["EDIT"](machine_id)
     providers = session["machine"]
@@ -151,23 +149,35 @@ def edit_machine(machine_id):
             place=machine.place,
             providers=providers,
             linux_hosts=LinuxPlatform.query.all(),
-            credentials=Credential.query
+            credentials=Credential.query,
         ),
         200,
     )
 
 
-@machines.route(
-    "/delete_machine/<machine_id>", methods=["GET"]
-)
+@machines.route("/delete_machine/<machine_id>", methods=["GET"])
 def delete_machine(machine_id):
     machine = Machine.query.get_or_404(machine_id)
     db.session.delete(machine)
     db.session.commit()
     message = f"Successfully deleted '{machine.name}' machine."
-    return render_template(
-        "success.html", message=message, redirect="/"
-    )
+    return render_template("success.html", message=message, redirect="/")
+
+
+@machines.route("/change_status/<machine_id>", methods=["GET"])
+def change_status(machine_id):
+    machine = Machine.query.get_or_404(machine_id)
+
+    target_status = MachineStatus[request.args.get("target_status")]
+    new_status = machine.ensure_status(target_status)
+    db.session.commit()
+
+    if new_status != target_status:
+        message = f"Could not set status for machine '{machine.name}'"
+        return render_template("error.html", message=message, redirect="/")
+
+    message = f"Successfully set machine '{machine.name}' status to {new_status.value}"
+    return render_template("success.html", message=message, redirect="/")
 
 
 @machines.route("/add_hardware_features", methods=["POST"])
@@ -219,7 +229,9 @@ def add_software_platform():
     machine = session["machine"]
     try:
         new_platform = software_platform_schema.load(request.form, unknown=EXCLUDE)
-        machine["software_platforms"].append(software_platform_schema.dump(new_platform))
+        machine["software_platforms"].append(
+            software_platform_schema.dump(new_platform)
+        )
         session["machine"] = machine
         return redirect(redirects[0])
     except ValidationError as e:
@@ -270,9 +282,7 @@ def create_machine():
 
         session.clear()
         message = f"Successfully created '{new_machine.name}' machine."
-        return render_template(
-            "success.html", message=message, redirect="/"
-        )
+        return render_template("success.html", message=message, redirect="/")
     except ValidationError as e:
         db.session.rollback()
         errors = [
@@ -303,9 +313,7 @@ def create_machine():
         )
 
 
-@machines.route(
-    "/edit_machine/<machine_id>", methods=["POST"]
-)
+@machines.route("/edit_machine/<machine_id>", methods=["POST"])
 def update_machine(machine_id):
     if "id" not in session:
         return redirect("/edit_machine")
@@ -325,9 +333,7 @@ def update_machine(machine_id):
 
         session.clear()
         message = f"Successfully updated '{updated.name}' machine."
-        return render_template(
-            "success.html", message=message, redirect="/"
-        )
+        return render_template("success.html", message=message, redirect="/")
     except ValidationError as e:
         db.session.rollback()
         errors = [

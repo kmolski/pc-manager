@@ -107,7 +107,7 @@ class LibvirtGuest(HardwareFeatures):
 
         if host_machine.ensure_status(MachineStatus.POWER_ON) != MachineStatus.POWER_ON:
             # TODO: Make the exception class more specific
-            raise Exception("Could not wake host")
+            raise Exception("could not wake libvirt host")
 
         # TODO: Make this handle bhyve hypervisors on FreeBSD
         return libvirt.open(f"qemu+ssh://{software_platform.hostname}/system")

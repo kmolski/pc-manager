@@ -48,13 +48,17 @@ class SshAccessiblePlatform(SoftwarePlatform):
         self.hostname = hostname
         self.credential_id = credential_id
 
-    def connect_to_server(self):
+    def connect_to_server(self, timeout=None):
         ssh_client = SSHClient()
         ssh_client.load_system_host_keys()
 
         (username, password, pkey) = self.credential.get_ssh_credentials()
         ssh_client.connect(
-            self.hostname, username=username, password=password, pkey=pkey
+            self.hostname,
+            username=username,
+            password=password,
+            pkey=pkey,
+            timeout=timeout,
         )
 
         return ssh_client
@@ -91,7 +95,7 @@ class SshAccessiblePlatform(SoftwarePlatform):
 
     def get_status(self):
         try:
-            ssh_client = self.connect_to_server()
+            ssh_client = self.connect_to_server(timeout=2)
             ssh_client.close()
             return MachineStatus.POWER_ON
         except socket.error:

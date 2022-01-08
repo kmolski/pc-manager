@@ -29,10 +29,10 @@ BASIC_OPS = [
 
 
 class MachineStatus(Enum):
-    UNKNOWN = auto()
-    POWER_OFF = auto()
-    POWER_ON = auto()
-    SUSPENDED = auto()
+    UNKNOWN = "unknown"
+    POWER_OFF = "power off"
+    POWER_ON = "power on"
+    SUSPENDED = "suspended"
 
 
 class OperationProvider:
