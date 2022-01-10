@@ -4,9 +4,10 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 DATABASE_URL = getenv("PC_MANAGER_DB_URL", "postgresql://localhost:5432/pc_manager")
+SECRET_KEY = getenv("PC_MANAGER_SECRET_KEY", urandom(32).hex())
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = urandom(32).hex()
+app.config["SECRET_KEY"] = SECRET_KEY
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1000 * 1000
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
