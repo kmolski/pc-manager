@@ -65,7 +65,10 @@
                 <td>{{machine.place}}</td>
                 <td>{{machine.hardware_features.READABLE_NAME if machine.hardware_features else 'none'}}</td>
                 <td>{{machine.software_platforms|length}}</td>
-                <td></td>
+                <td>
+                    {{machine.last_status.value}}
+                    ({{display_duration(machine.last_status_time)}} ago)
+                </td>
                 <td class="d-flex flex-row flex-wrap justify-content-end">
                     <a href="/execute_action/{{machine.id}}" class="btn btn-primary m-1">Execute action</a>
                     <button class="btn btn-primary dropdown-toggle m-1" type="button" id="changeStatusDropdown"

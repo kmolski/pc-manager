@@ -12,6 +12,13 @@ class Machine(db.Model):
     name = db.Column(db.String(127), nullable=False, unique=True)
     place = db.Column(db.String(127))
 
+    last_status = db.Column(
+        db.Enum(MachineStatus, name="machine_status", validate_strings=True),
+        nullable=False,
+        default=MachineStatus.UNKNOWN
+    )
+    last_status_time = db.Column(db.TIMESTAMP(), nullable=False, server_default="now()")
+
     hardware_features = db.relationship(
         "HardwareFeatures",
         foreign_keys="HardwareFeatures.machine_id",

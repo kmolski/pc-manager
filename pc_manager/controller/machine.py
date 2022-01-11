@@ -1,3 +1,7 @@
+from datetime import datetime
+from functools import partial
+from itertools import islice
+
 from flask import render_template, Blueprint, request, session, redirect
 from flask_marshmallow import Marshmallow
 from marshmallow import fields, post_load, ValidationError, EXCLUDE
@@ -95,11 +99,28 @@ software_platform_schema = SoftwarePlatformSchema()
 machine_schema = MachineSchema()
 
 
+def display_duration(to_date, from_date):
+    duration = to_date - from_date
+
+    total_minutes, seconds = divmod(duration.seconds, 60)
+    hours, minutes = divmod(total_minutes, 60)
+    units = {
+        "d": duration.days,
+        "h": hours,
+        "m": minutes,
+        "s": seconds
+    }
+
+    parts = islice((f"{unit}{name}" for name, unit in units.items() if unit > 0), 2)
+    return " ".join(parts)
+
+
 @machines.route("/")
 def all_machines():
     return render_template(
         "machines.html",
         machines=Machine.query.paginate(),
+        display_duration=partial(display_duration, datetime.now())
     )
 
 
@@ -170,6 +191,9 @@ def change_status(machine_id):
 
     target_status = MachineStatus[request.args.get("target_status")]
     new_status = machine.ensure_status(target_status)
+
+    machine.last_status = new_status
+    machine.last_status_time = datetime.now()
     db.session.commit()
 
     if new_status != target_status:

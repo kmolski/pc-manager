@@ -103,16 +103,15 @@ class SshAccessiblePlatform(SoftwarePlatform):
 
     def ensure_status(self, target_status):
         current_status = self.get_status()
-        if current_status == MachineStatus.POWER_ON:
-            if target_status == MachineStatus.POWER_OFF:
+        match (current_status, target_status):
+            case (MachineStatus.POWER_ON, MachineStatus.POWER_OFF):
                 self.shutdown()
                 return MachineStatus.POWER_OFF
-            elif target_status == MachineStatus.SUSPENDED:
+            case (MachineStatus.POWER_ON, MachineStatus.SUSPENDED):
                 self.suspend()
                 return MachineStatus.SUSPENDED
-            return MachineStatus.POWER_ON
-
-        return current_status
+            case _:
+                return current_status
 
 
 class LinuxPlatform(SshAccessiblePlatform):

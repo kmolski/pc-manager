@@ -4,7 +4,10 @@ from paramiko.dsskey import DSSKey
 from paramiko.ecdsakey import ECDSAKey
 from paramiko.ed25519key import Ed25519Key
 from paramiko.rsakey import RSAKey
-from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine, StringEncryptedType
+from sqlalchemy_utils.types.encrypted.encrypted_type import (
+    AesEngine,
+    StringEncryptedType,
+)
 
 from app import db, SECRET_KEY
 
@@ -17,14 +20,14 @@ class Credential(db.Model):
     name = db.Column(db.String(127), unique=True)
     type = db.Column(db.String(31))
 
-    username = db.Column(StringEncryptedType(db.String, SECRET_KEY, AesEngine, 'pkcs5'))
-    secret = db.Column(StringEncryptedType(db.String, SECRET_KEY, AesEngine, 'pkcs5'))
+    username = db.Column(StringEncryptedType(db.String, SECRET_KEY, AesEngine, "pkcs5"))
+    secret = db.Column(StringEncryptedType(db.String, SECRET_KEY, AesEngine, "pkcs5"))
 
 
 class SshCredential(Credential):
     KEY_TYPES = {"ed25519": Ed25519Key, "ecdsa": ECDSAKey, "dss": DSSKey, "rsa": RSAKey}
 
-    key = db.Column(StringEncryptedType(db.String, SECRET_KEY, AesEngine, 'pkcs5'))
+    key = db.Column(StringEncryptedType(db.String, SECRET_KEY, AesEngine, "pkcs5"))
     key_type = db.Column(
         db.Enum(*KEY_TYPES.keys(), name="ssh_key_type", validate_strings=True)
     )
