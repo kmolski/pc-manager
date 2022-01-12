@@ -85,6 +85,41 @@
             </tr>
             <tr class="accordion-collapse collapse" id="details{{machine.id}}">
                 <td colspan="6" class="accordion-body">
+                    {% if machine.hardware_features %}
+                    Hardware features: {{machine.hardware_features.READABLE_NAME}}
+                    <ul>
+                        {% for name, property in machine.hardware_features.get_properties().items() %}
+                        <li>{{name}}: {{property}}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    {% if machine.software_platforms %}
+                    Software platforms:
+                    <ul>
+                        {% for platform in machine.software_platforms %}
+                        <li>
+                            {{platform.READABLE_NAME}}
+                            <ul>
+                                {% for name, property in platform.get_properties().items() %}
+                                <li>{{name}}: {{property}}</li>
+                                {% endfor %}
+                            </ul>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    {% if machine.custom_operations %}
+                    Custom operations:
+                    <ul>
+                    {% for custom_op in machine.custom_operations %}
+                        <li>
+                            {{custom_op.name}} - {{custom_op.description}}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

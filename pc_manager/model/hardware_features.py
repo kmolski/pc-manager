@@ -57,6 +57,9 @@ class WakeOnLan(HardwareFeatures):
     def __resume(self):
         send_magic_packet(self.mac_address)
 
+    def get_properties(self):
+        return {"MAC address": self.mac_address}
+
     def get_operations(self):
         return {
             RESUME_OP.name: (self.__resume, RESUME_OP.description),
@@ -135,6 +138,12 @@ class LibvirtGuest(HardwareFeatures):
     def reboot(self):
         domain = self.get_domain()
         domain.reboot()
+
+    def get_properties(self):
+        return {
+            "Host machine": self.libvirt_host_platform.machine.name,
+            "Machine UUID": self.vm_uuid,
+        }
 
     def get_operations(self):
         return {

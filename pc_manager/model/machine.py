@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.ext.orderinglist import ordering_list
 
 from app import db
@@ -15,7 +17,7 @@ class Machine(db.Model):
     last_status = db.Column(
         db.Enum(MachineStatus, name="machine_status", validate_strings=True),
         nullable=False,
-        default=MachineStatus.UNKNOWN
+        default=MachineStatus.UNKNOWN,
     )
     last_status_time = db.Column(db.TIMESTAMP(), nullable=False, server_default="now()")
 
@@ -94,5 +96,7 @@ class Machine(db.Model):
         for provider in status_managers:
             status = provider.ensure_status(target_status)
             if status == target_status:
+                self.last_status = status
+                self.last_status_time = datetime.now()
                 return status
         return self.get_status()

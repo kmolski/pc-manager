@@ -80,6 +80,9 @@ class SshAccessiblePlatform(SoftwarePlatform):
     def execute_command(self, command):
         self.remote_execute_command(command)
 
+    def get_properties(self):
+        return {"Hostname": self.hostname, "Credential name": self.credential.name}
+
     def get_operations(self):
         return {
             SHUTDOWN_OP.name: (self.shutdown, SHUTDOWN_OP.description),
@@ -116,6 +119,7 @@ class SshAccessiblePlatform(SoftwarePlatform):
 
 class LinuxPlatform(SshAccessiblePlatform):
     PROVIDER_NAME = "linux"
+    READABLE_NAME = "Linux platform"
     __mapper_args__ = {"polymorphic_identity": PROVIDER_NAME}
 
     def shutdown(self):
@@ -137,6 +141,7 @@ class LinuxPlatform(SshAccessiblePlatform):
 
 class FreeBsdPlatform(SshAccessiblePlatform):
     PROVIDER_NAME = "freebsd"
+    READABLE_NAME = "FreeBSD platform"
     __mapper_args__ = {"polymorphic_identity": PROVIDER_NAME}
 
     def shutdown(self):
@@ -158,6 +163,7 @@ class FreeBsdPlatform(SshAccessiblePlatform):
 
 class WindowsPlatform(SshAccessiblePlatform):
     PROVIDER_NAME = "windows"
+    READABLE_NAME = "Windows platform"
     __mapper_args__ = {"polymorphic_identity": PROVIDER_NAME}
 
     def shutdown(self):

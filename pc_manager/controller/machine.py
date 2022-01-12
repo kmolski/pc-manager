@@ -1,6 +1,5 @@
 from datetime import datetime
 from functools import partial
-from itertools import islice
 
 from flask import render_template, Blueprint, request, session, redirect
 from flask_marshmallow import Marshmallow
@@ -16,7 +15,7 @@ from model.custom_operation import CustomOperation
 from model.hardware_features import WakeOnLan, LibvirtGuest
 from model.machine import Machine
 from model.software_platform import LinuxPlatform, WindowsPlatform
-from utils import execute_operations
+from utils import execute_operations, display_duration
 
 machines = Blueprint("machines", __name__, template_folder="templates")
 
@@ -109,28 +108,12 @@ software_platform_schema = SoftwarePlatformSchema()
 machine_schema = MachineSchema()
 
 
-def display_duration(to_date, from_date):
-    duration = to_date - from_date
-
-    total_minutes, seconds = divmod(duration.seconds, 60)
-    hours, minutes = divmod(total_minutes, 60)
-    units = {
-        "d": duration.days,
-        "h": hours,
-        "m": minutes,
-        "s": seconds
-    }
-
-    parts = islice((f"{unit}{name}" for name, unit in units.items() if unit > 0), 2)
-    return " ".join(parts)
-
-
 @machines.route("/")
 def all_machines():
     return render_template(
         "machines.html",
         machines=Machine.query.paginate(),
-        display_duration=partial(display_duration, datetime.now())
+        display_duration=partial(display_duration, datetime.now()),
     )
 
 
@@ -144,7 +127,7 @@ def add_machine():
         session["machine"] = {
             "hardware_features": None,
             "software_platforms": [],
-            "custom_operations": []
+            "custom_operations": [],
         }
     machine = session["machine"]
     return (
@@ -175,7 +158,7 @@ def edit_machine(machine_id):
             "software_platforms": software_platform_schema.dump(sw, many=True)
             if sw
             else [],
-            "custom_operations": [op.id for op in machine.custom_operations]
+            "custom_operations": [op.id for op in machine.custom_operations],
         }
         session["redirect"] = REDIRECTS["EDIT"](machine_id)
     providers = session["machine"]
@@ -453,8 +436,12 @@ def update_machine(machine_id):
         try:
             machine.name = form["name"]
             machine.place = form["place"]
-            machine.hardware_features = hardware_features_schema.load(form["hardware_features"])
-            machine.software_platforms = software_platform_schema.load(form["software_platforms"], many=True)
+            machine.hardware_features = hardware_features_schema.load(
+                form["hardware_features"]
+            )
+            machine.software_platforms = software_platform_schema.load(
+                form["software_platforms"], many=True
+            )
             machine.custom_operations = [
                 CustomOperation.query.get(id) for id in form["custom_operations"]
             ]
