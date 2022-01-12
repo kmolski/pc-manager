@@ -12,21 +12,25 @@ from sqlalchemy.exc import IntegrityError
 from app import db
 from model.base import MachineStatus
 from model.credential import Credential
+from model.custom_operation import CustomOperation
 from model.hardware_features import WakeOnLan, LibvirtGuest
 from model.machine import Machine
 from model.software_platform import LinuxPlatform, WindowsPlatform
+from utils import execute_operations
 
 machines = Blueprint("machines", __name__, template_folder="templates")
 
 REDIRECTS = {
     "ADD": lambda: ("/add_machine", "add_machine.html"),
     "EDIT": lambda id: (f"/edit_machine/{id}", "edit_machine.html"),
+    "EXECUTE": lambda id: (f"/execute_action/{id}", "execute_action.html"),
 }
 
 ma = Marshmallow()
 
 
 class WakeOnLanSchema(ma.Schema):
+    id = fields.Integer(allow_none=True)
     mac_address = fields.Str(
         required=True, validate=Regexp(r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$")
     )
@@ -37,6 +41,7 @@ class WakeOnLanSchema(ma.Schema):
 
 
 class LibvirtGuestSchema(ma.Schema):
+    id = fields.Integer(allow_none=True)
     host_id = fields.Integer(required=True)
     vm_uuid = fields.UUID(required=True)
 
@@ -54,6 +59,7 @@ class HardwareFeaturesSchema(OneOfSchema):
 
 
 class LinuxPlatformSchema(ma.Schema):
+    id = fields.Integer(allow_none=True)
     hostname = fields.Str(required=True)
     credential_id = fields.Integer(required=True)
 
@@ -63,6 +69,7 @@ class LinuxPlatformSchema(ma.Schema):
 
 
 class WindowsPlatformSchema(ma.Schema):
+    id = fields.Integer(allow_none=True)
     hostname = fields.Str(required=True)
     credential_id = fields.Integer(required=True)
 
@@ -91,6 +98,9 @@ class MachineSchema(ma.Schema):
 
     @post_load
     def make_machine(self, data, **_):
+        data["custom_operations"] = [
+            CustomOperation.query.get(id) for id in data["custom_operations"]
+        ]
         return Machine(**data)
 
 
@@ -131,12 +141,17 @@ def add_machine():
         session["action"] = "MACHINE_ADD"
         session["redirect"] = REDIRECTS["ADD"]()
     if "machine" not in session:
-        session["machine"] = {"hardware_features": None, "software_platforms": []}
+        session["machine"] = {
+            "hardware_features": None,
+            "software_platforms": [],
+            "custom_operations": []
+        }
     machine = session["machine"]
     return (
         render_template(
             "add_machine.html",
             machine=machine,
+            custom_ops=CustomOperation.query.all(),
             linux_hosts=LinuxPlatform.query.all(),
             credentials=Credential.query,
         ),
@@ -160,6 +175,7 @@ def edit_machine(machine_id):
             "software_platforms": software_platform_schema.dump(sw, many=True)
             if sw
             else [],
+            "custom_operations": [op.id for op in machine.custom_operations]
         }
         session["redirect"] = REDIRECTS["EDIT"](machine_id)
     providers = session["machine"]
@@ -169,6 +185,7 @@ def edit_machine(machine_id):
             name=machine.name,
             place=machine.place,
             providers=providers,
+            custom_ops=CustomOperation.query.all(),
             linux_hosts=LinuxPlatform.query.all(),
             credentials=Credential.query,
         ),
@@ -183,6 +200,59 @@ def delete_machine(machine_id):
     db.session.commit()
     message = f"Successfully deleted '{machine.name}' machine."
     return render_template("success.html", message=message, redirect="/")
+
+
+@machines.route("/execute_action/<machine_id>", methods=["GET"])
+def define_action(machine_id):
+    machine = Machine.query.get_or_404(machine_id)
+    if ("action" not in session) or (session["action"] != "MACHINE_EXECUTE"):
+        session.clear()
+        session["action"] = "MACHINE_EXECUTE"
+        session["redirect"] = REDIRECTS["EXECUTE"](machine_id)
+    if ("id" not in session) or (session["id"] != machine_id):
+        session["id"] = machine_id
+        session["steps"] = []
+        session["redirect"] = REDIRECTS["EXECUTE"](machine_id)
+
+    available_ops = {}
+    for provider in reversed(machine.get_operation_providers()):
+        available_ops |= provider.get_operations()
+    return (
+        render_template(
+            "execute_action.html",
+            steps=session["steps"],
+            available_ops=available_ops,
+        ),
+        200,
+    )
+
+
+@machines.route("/execute_action/<machine_id>", methods=["POST"])
+def execute_action(machine_id):
+    if "steps" not in session:
+        return redirect(f"/execute_action/{machine_id}")
+
+    machine = Machine.query.get_or_404(machine_id)
+    steps = session["steps"]
+    try:
+        execute_operations(machine, steps)
+    except Exception as e:
+        message = f"Could not execute action for machine '{machine.name}'"
+        return render_template("error.html", message=message, redirect="/")
+
+    machine.last_status = machine.get_status()
+    machine.last_status_time = datetime.now()
+    db.session.commit()
+
+    session.clear()
+    message = f"Successfully executed action for '{machine.name}'"
+    return render_template("success.html", message=message, redirect="/")
+
+
+@machines.route("/clear_action")
+def clear_action():
+    session.clear()
+    return redirect("/")
 
 
 @machines.route("/change_status/<machine_id>", methods=["GET"])
@@ -224,6 +294,7 @@ def add_hardware_features():
             render_template(
                 redirects[1],
                 machine=machine,
+                custom_ops=CustomOperation.query.all(),
                 linux_hosts=LinuxPlatform.query.all(),
                 credentials=Credential.query,
                 errors=errors,
@@ -266,6 +337,7 @@ def add_software_platform():
             render_template(
                 redirects[1],
                 machine=machine,
+                custom_ops=CustomOperation.query.all(),
                 linux_hosts=LinuxPlatform.query.all(),
                 credentials=Credential.query,
                 errors=errors,
@@ -282,6 +354,18 @@ def delete_software_platform(index):
     machine = session["machine"]
 
     machine["software_platforms"].pop(int(index) - 1)
+    session["machine"] = machine
+    return redirect(redirects[0])
+
+
+@machines.route("/save_custom_ops", methods=["POST"])
+def save_custom_ops():
+    redirects = session["redirect"]
+    if "machine" not in session:
+        return redirect(redirects[0])
+
+    machine = session["machine"]
+    machine["custom_operations"] = [int(id) for id in request.form if id.isnumeric()]
     session["machine"] = machine
     return redirect(redirects[0])
 
@@ -316,6 +400,7 @@ def create_machine():
             render_template(
                 "add_machine.html",
                 machine=machine,
+                custom_ops=CustomOperation.query.all(),
                 linux_hosts=LinuxPlatform.query.all(),
                 credentials=Credential.query,
                 errors=errors,
@@ -329,6 +414,7 @@ def create_machine():
             render_template(
                 "add_machine.html",
                 machine=machine,
+                custom_ops=CustomOperation.query.all(),
                 linux_hosts=LinuxPlatform.query.all(),
                 credentials=Credential.query,
                 errors=errors,
@@ -341,24 +427,11 @@ def create_machine():
 def update_machine(machine_id):
     if "id" not in session:
         return redirect("/edit_machine")
-    previous = Machine.query.get(machine_id)
+    machine = Machine.query.get(machine_id)
     providers = session["machine"]
     form = request.form.to_dict() | providers
 
-    db.session.delete(previous.hardware_features)
-    for sw in previous.software_platforms:
-        db.session.delete(sw)
-
-    try:
-        updated = machine_schema.load(form, unknown=EXCLUDE)
-        updated.id = machine_id
-        db.session.merge(updated)
-        db.session.commit()
-
-        session.clear()
-        message = f"Successfully updated '{updated.name}' machine."
-        return render_template("success.html", message=message, redirect="/")
-    except ValidationError as e:
+    if e := machine_schema.validate(form):
         db.session.rollback()
         errors = [
             f"Field '{name}': {', '.join(desc)}" for name, desc in e.messages.items()
@@ -369,24 +442,40 @@ def update_machine(machine_id):
                 name=form["name"],
                 place=form["place"],
                 providers=providers,
+                custom_ops=CustomOperation.query.all(),
                 linux_hosts=LinuxPlatform.query.all(),
                 credentials=Credential.query,
                 errors=errors,
             ),
             200,
         )
-    except IntegrityError:
-        db.session.rollback()
-        errors = ["Machine with this name already exists"]
-        return (
-            render_template(
-                "edit_machine.html",
-                name=form["name"],
-                place=form["place"],
-                providers=providers,
-                linux_hosts=LinuxPlatform.query.all(),
-                credentials=Credential.query,
-                errors=errors,
-            ),
-            200,
-        )
+    else:
+        try:
+            machine.name = form["name"]
+            machine.place = form["place"]
+            machine.hardware_features = hardware_features_schema.load(form["hardware_features"])
+            machine.software_platforms = software_platform_schema.load(form["software_platforms"], many=True)
+            machine.custom_operations = [
+                CustomOperation.query.get(id) for id in form["custom_operations"]
+            ]
+            db.session.commit()
+
+            session.clear()
+            message = f"Successfully updated '{machine.name}' machine."
+            return render_template("success.html", message=message, redirect="/")
+        except IntegrityError:
+            db.session.rollback()
+            errors = ["Machine with this name already exists"]
+            return (
+                render_template(
+                    "edit_machine.html",
+                    name=form["name"],
+                    place=form["place"],
+                    providers=providers,
+                    custom_ops=CustomOperation.query.all(),
+                    linux_hosts=LinuxPlatform.query.all(),
+                    credentials=Credential.query,
+                    errors=errors,
+                ),
+                200,
+            )

@@ -21,7 +21,7 @@ ma = Marshmallow()
 
 
 class OperationSchema(ma.Schema):
-    op_name = fields.Str(required=True, validate=OneOf([op.name for op in BASIC_OPS]))
+    op_name = fields.Str(required=True)
     argument = fields.Str(allow_none=True, validate=Length(max=127))
 
 
@@ -212,7 +212,7 @@ def update_custom_operation(custom_operations_id):
 
     try:
         updated = custom_op_schema.load(form, unknown=EXCLUDE)
-        updated.id = custom_operations_id
+        updated.id = int(custom_operations_id)
         db.session.merge(updated)
         db.session.commit()
 

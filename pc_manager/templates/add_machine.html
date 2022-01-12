@@ -213,6 +213,26 @@
             {% endif %}
         </div>
 
+        <hr class="mb-3">
+
+        <div class="mb-3">
+            <label class="form-label">Custom operations:</label>
+            {% if machine["hardware_features"] or machine["software_platforms"] %}
+            <form method="POST" action="/save_custom_ops">
+                <input type="submit" class="btn btn-primary mb-2" value="Save custom operations">
+                {% for op in custom_ops %}
+                <div class="form-check m-2">
+                    <input class="form-check-input" type="checkbox" value="" name="{{op.id}}"
+                           id="custom_op{{loop.index}}" {{'checked' if op.id in machine["custom_operations"] else ''}}>
+                    <label class="form-check-label" for="custom_op{{loop.index}}">{{op.name}} - {{op.description}}</label>
+                </div>
+                {% endfor %}
+            </form>
+            {% else %}
+            <div class="alert alert-info">To assign a custom operation, define hardware features or a software platform.</div>
+            {% endif %}
+        </div>
+
         <input type="submit" form="add_machine" class="btn btn-primary" value="Submit">
         <a href="/" class="btn btn-secondary">Go back</a>
         <a class="btn btn-danger" href="/clear_machine">Clear</a>

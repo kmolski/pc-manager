@@ -156,7 +156,7 @@ def update_credential(credential_id):
         )
     try:
         updated = credential_schema.load(form, unknown=EXCLUDE)
-        updated.id = credential_id
+        updated.id = int(credential_id)
 
         if previous.type != updated.type:
             message = "Changing credential type is not allowed"

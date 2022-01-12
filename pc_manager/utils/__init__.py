@@ -1,4 +1,4 @@
 def execute_operations(machine, operations):
     for op in operations:
-        arguments = op["args"] if "args" in op else []
-        machine.execute_action(op["op_name"], arguments)
+        argument = op["argument"] if "argument" in op else None
+        machine.execute_action(op["op_name"], argument)

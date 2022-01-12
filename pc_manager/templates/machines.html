@@ -48,7 +48,7 @@
                 <th scope="col">Name</th>
                 <th scope="col">Place</th>
                 <th scope="col">Hardware</th>
-                <th scope="col">SW platforms</th>
+                <th scope="col">Software platforms</th>
                 <th scope="col">Last status</th>
                 <th></th>
             </tr>
@@ -66,8 +66,7 @@
                 <td>{{machine.hardware_features.READABLE_NAME if machine.hardware_features else 'none'}}</td>
                 <td>{{machine.software_platforms|length}}</td>
                 <td>
-                    {{machine.last_status.value}}
-                    ({{display_duration(machine.last_status_time)}} ago)
+                    {{machine.last_status.value}} ({{display_duration(machine.last_status_time)}} ago)
                 </td>
                 <td class="d-flex flex-row flex-wrap justify-content-end">
                     <a href="/execute_action/{{machine.id}}" class="btn btn-primary m-1">Execute action</a>

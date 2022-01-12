@@ -41,7 +41,7 @@ class CustomOperationProvider(OperationProvider):
     def __init__(self, machine):
         self.operations = {}
         for custom_op in machine.custom_operations:
-            process = loads(custom_op.json)
+            process = custom_op.ops
 
             def custom_op_func():
                 execute_operations(machine, process)
