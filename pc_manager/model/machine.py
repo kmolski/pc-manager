@@ -42,11 +42,14 @@ class Machine(db.Model):
         cascade="all",
     )
 
-    def __init__(self, name, place, hardware_features, software_platforms):
+    def __init__(
+        self, name, place, hardware_features, software_platforms, custom_operations
+    ):
         self.name = name
         self.place = place
         self.hardware_features = hardware_features
         self.software_platforms = software_platforms
+        self.custom_operations = custom_operations
 
     def get_operation_providers(self):
         return [
