@@ -1,7 +1,7 @@
 from flask import render_template, Blueprint, request, session, redirect
 from flask_marshmallow import Marshmallow
 from marshmallow import fields, post_load, ValidationError, EXCLUDE
-from marshmallow.validate import Length, OneOf
+from marshmallow.validate import Length
 from sqlalchemy.exc import IntegrityError
 
 from app import db

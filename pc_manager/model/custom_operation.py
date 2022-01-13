@@ -1,5 +1,3 @@
-from json import loads
-
 from app import db
 from model.base import OperationProvider
 from utils import execute_operations

@@ -1,5 +1,5 @@
 from collections import namedtuple
-from enum import Enum, auto
+from enum import Enum
 
 BasicOp = namedtuple("BasicOp", ["name", "description", "with_argument"])
 
