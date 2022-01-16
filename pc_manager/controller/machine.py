@@ -8,7 +8,7 @@ from marshmallow.validate import Length, Regexp
 from marshmallow_oneofschema import OneOfSchema
 from sqlalchemy.exc import IntegrityError
 
-from app import db
+from app import db, auth
 from model.base import MachineStatus
 from model.credential import Credential
 from model.custom_operation import CustomOperation
@@ -109,6 +109,7 @@ machine_schema = MachineSchema()
 
 
 @machines.route("/")
+@auth.login_required
 def all_machines():
     return render_template(
         "machines.html",
@@ -118,6 +119,7 @@ def all_machines():
 
 
 @machines.route("/add_machine", methods=["GET"])
+@auth.login_required
 def add_machine():
     if ("action" not in session) or (session["action"] != "MACHINE_ADD"):
         session.clear()
@@ -143,6 +145,7 @@ def add_machine():
 
 
 @machines.route("/edit_machine/<machine_id>", methods=["GET"])
+@auth.login_required
 def edit_machine(machine_id):
     machine = Machine.query.get_or_404(machine_id)
     if ("action" not in session) or (session["action"] != "MACHINE_EDIT"):
@@ -177,6 +180,7 @@ def edit_machine(machine_id):
 
 
 @machines.route("/delete_machine/<machine_id>", methods=["GET"])
+@auth.login_required
 def delete_machine(machine_id):
     machine = Machine.query.get_or_404(machine_id)
     db.session.delete(machine)
@@ -186,6 +190,7 @@ def delete_machine(machine_id):
 
 
 @machines.route("/execute_action/<machine_id>", methods=["GET"])
+@auth.login_required
 def define_action(machine_id):
     machine = Machine.query.get_or_404(machine_id)
     if ("action" not in session) or (session["action"] != "MACHINE_EXECUTE"):
@@ -211,6 +216,7 @@ def define_action(machine_id):
 
 
 @machines.route("/execute_action/<machine_id>", methods=["POST"])
+@auth.login_required
 def execute_action(machine_id):
     if "steps" not in session:
         return redirect(f"/execute_action/{machine_id}")
@@ -233,12 +239,14 @@ def execute_action(machine_id):
 
 
 @machines.route("/clear_action")
+@auth.login_required
 def clear_action():
     session.clear()
     return redirect("/")
 
 
 @machines.route("/change_status/<machine_id>", methods=["GET"])
+@auth.login_required
 def change_status(machine_id):
     machine = Machine.query.get_or_404(machine_id)
 
@@ -258,6 +266,7 @@ def change_status(machine_id):
 
 
 @machines.route("/add_hardware_features", methods=["POST"])
+@auth.login_required
 def add_hardware_features():
     redirects = session["redirect"]
     if "machine" not in session:
@@ -287,6 +296,7 @@ def add_hardware_features():
 
 
 @machines.route("/delete_hardware_features")
+@auth.login_required
 def delete_hardware_features():
     redirects = session["redirect"]
     if "machine" not in session:
@@ -299,6 +309,7 @@ def delete_hardware_features():
 
 
 @machines.route("/add_software_platform", methods=["POST"])
+@auth.login_required
 def add_software_platform():
     redirects = session["redirect"]
     if "machine" not in session:
@@ -330,6 +341,7 @@ def add_software_platform():
 
 
 @machines.route("/delete_software_platform/<index>")
+@auth.login_required
 def delete_software_platform(index):
     redirects = session["redirect"]
     if "machine" not in session:
@@ -342,6 +354,7 @@ def delete_software_platform(index):
 
 
 @machines.route("/save_custom_ops", methods=["POST"])
+@auth.login_required
 def save_custom_ops():
     redirects = session["redirect"]
     if "machine" not in session:
@@ -354,12 +367,14 @@ def save_custom_ops():
 
 
 @machines.route("/clear_machine")
+@auth.login_required
 def clear_machine():
     session.clear()
     return redirect("/add_machine")
 
 
 @machines.route("/add_machine", methods=["POST"])
+@auth.login_required
 def create_machine():
     if "machine" not in session:
         return redirect("/add_machine")
@@ -407,6 +422,7 @@ def create_machine():
 
 
 @machines.route("/edit_machine/<machine_id>", methods=["POST"])
+@auth.login_required
 def update_machine(machine_id):
     if "id" not in session:
         return redirect("/edit_machine")

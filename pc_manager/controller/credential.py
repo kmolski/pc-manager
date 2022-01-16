@@ -5,7 +5,7 @@ from marshmallow.validate import Length, OneOf
 from marshmallow_oneofschema import OneOfSchema
 from sqlalchemy.exc import IntegrityError
 
-from app import db
+from app import db, auth
 from model.credential import (
     Credential,
     Password,
@@ -71,6 +71,7 @@ credential_schema = CredentialSchema()
 
 
 @credentials.route("/credentials")
+@auth.login_required
 def all_credentials():
     return render_template(
         "credentials.html",
@@ -80,6 +81,7 @@ def all_credentials():
 
 
 @credentials.route("/add_credential", methods=["GET"])
+@auth.login_required
 def add_credential():
     try:
         type = TYPE_NAMES[request.args.get("type")]
@@ -91,12 +93,14 @@ def add_credential():
 
 
 @credentials.route("/edit_credential/<credential_id>", methods=["GET"])
+@auth.login_required
 def edit_credential(credential_id):
     credential = Credential.query.get_or_404(credential_id)
     return render_template("edit_credential.html", credential=credential), 200
 
 
 @credentials.route("/delete_credential/<credential_id>", methods=["GET"])
+@auth.login_required
 def delete_credential(credential_id):
     credential = Credential.query.get_or_404(credential_id)
     db.session.delete(credential)
@@ -106,6 +110,7 @@ def delete_credential(credential_id):
 
 
 @credentials.route("/add_credential", methods=["POST"])
+@auth.login_required
 def create_credential():
     form = request.form | {k: v.stream.read() for k, v in request.files.items()}
 
@@ -141,6 +146,7 @@ def create_credential():
 
 
 @credentials.route("/edit_credential/<credential_id>", methods=["POST"])
+@auth.login_required
 def update_credential(credential_id):
     previous = Credential.query.get_or_404(credential_id)
     form = request.form | {k: v.stream.read() for k, v in request.files.items()}

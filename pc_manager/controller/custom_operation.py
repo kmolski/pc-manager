@@ -4,7 +4,7 @@ from marshmallow import fields, post_load, ValidationError, EXCLUDE
 from marshmallow.validate import Length
 from sqlalchemy.exc import IntegrityError
 
-from app import db
+from app import db, auth
 from model.base import BASIC_OPS
 from model.custom_operation import CustomOperation
 
@@ -40,6 +40,7 @@ custom_op_schema = CustomOperationSchema()
 
 
 @custom_operations.route("/custom_operations")
+@auth.login_required
 def all_custom_operations():
     return render_template(
         "custom_operations.html",
@@ -48,6 +49,7 @@ def all_custom_operations():
 
 
 @custom_operations.route("/add_custom_operation", methods=["GET"])
+@auth.login_required
 def add_custom_operation():
     if ("action" not in session) or (session["action"] != "CUSTOM_OP_ADD"):
         session.clear()
@@ -67,6 +69,7 @@ def add_custom_operation():
 @custom_operations.route(
     "/edit_custom_operation/<custom_operation_id>", methods=["GET"]
 )
+@auth.login_required
 def edit_custom_operation(custom_operation_id):
     custom_operation = CustomOperation.query.get_or_404(custom_operation_id)
     if ("action" not in session) or (session["action"] != "CUSTOM_OP_EDIT"):
@@ -93,6 +96,7 @@ def edit_custom_operation(custom_operation_id):
 @custom_operations.route(
     "/delete_custom_operation/<custom_operation_id>", methods=["GET"]
 )
+@auth.login_required
 def delete_custom_operation(custom_operation_id):
     custom_operation = CustomOperation.query.get_or_404(custom_operation_id)
     db.session.delete(custom_operation)
@@ -107,6 +111,7 @@ ma = Marshmallow()
 
 
 @custom_operations.route("/add_operation_step", methods=["POST"])
+@auth.login_required
 def add_operation_step():
     redirects = session["redirect"]
     if "steps" not in session:
@@ -137,6 +142,7 @@ def add_operation_step():
 
 
 @custom_operations.route("/delete_operation_step/<index>")
+@auth.login_required
 def delete_operation_step(index):
     redirects = session["redirect"]
     if "steps" not in session:
@@ -149,12 +155,14 @@ def delete_operation_step(index):
 
 
 @custom_operations.route("/clear_custom_operation")
+@auth.login_required
 def clear_custom_operation():
     session.clear()
     return redirect("/add_custom_operation")
 
 
 @custom_operations.route("/add_custom_operation", methods=["POST"])
+@auth.login_required
 def create_custom_operation():
     if "steps" not in session:
         return redirect("/add_custom_operation")
@@ -203,6 +211,7 @@ def create_custom_operation():
 @custom_operations.route(
     "/edit_custom_operation/<custom_operations_id>", methods=["POST"]
 )
+@auth.login_required
 def update_custom_operation(custom_operations_id):
     if "id" not in session:
         return redirect("/edit_custom_operation")
