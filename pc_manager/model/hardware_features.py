@@ -1,4 +1,5 @@
 from time import sleep, time
+from urllib.parse import urlunparse
 
 import libvirt
 from sqlalchemy.dialects.postgresql import UUID, MACADDR
@@ -109,11 +110,10 @@ class LibvirtGuest(HardwareFeatures):
         host_machine = software_platform.machine
 
         if host_machine.ensure_status(MachineStatus.POWER_ON) != MachineStatus.POWER_ON:
-            # TODO: Make the exception class more specific
             raise Exception("could not wake libvirt host")
 
-        # TODO: Make this handle bhyve hypervisors on FreeBSD
-        return libvirt.open(f"qemu+ssh://{software_platform.hostname}/system")
+        url = urlunparse(("qemu+ssh", software_platform.hostname, "system", None, None, None))
+        return libvirt.open(url)
 
     def get_domain(self):
         conn = self.get_connection_to_host()
