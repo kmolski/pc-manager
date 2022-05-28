@@ -6,20 +6,20 @@ authors = ["kmolski <starfighter413@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-flask = "^2.0.2"
+flask = "^2.1.2"
 flask-sqlalchemy = "^2.5.1"
 flask-marshmallow = "^0.14.0"
-flask-httpauth = "^4.5.0"
+flask-httpauth = "^4.6.0"
 marshmallow-oneofschema = "^3.0.1"
-marshmallow-sqlalchemy = "^0.27.0"
+marshmallow-sqlalchemy = "^0.28.0"
 sqlalchemy-utils = "^0.38.2"
 psycopg2-binary = "^2.9.3"
-paramiko = "^2.10.1"
+paramiko = "^2.11.0"
 wakeonlan = "^2.1.0"
-libvirt-python = "^8.0.0"
+libvirt-python = "^8.3.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+pytest = "^7.1.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
